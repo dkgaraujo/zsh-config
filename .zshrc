@@ -3,7 +3,7 @@ autoload -Uz vcs_info
 precmd() { vcs_info }
 
 zstyle ':vcs_info:*' enable git
-zstyle ':vcs_info:*' formats '(branch: %b)'
+zstyle ':vcs_info:*' formats ' (branch: %b)'
 
 # Enable prompt substitution
 setopt prompt_subst
@@ -52,5 +52,5 @@ generate_username_with_gradient() {
 }
 
 # Final prompt
-PROMPT='$(generate_username_with_gradient) %F{yellow}%~ %F{green}${vcs_info_msg_0_}%f%k %# '
+PROMPT='$(generate_username_with_gradient) %F{yellow}%~%F{green}${vcs_info_msg_0_}%f%k %# '
 
