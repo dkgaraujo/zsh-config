@@ -1,36 +1,51 @@
-prompt_fire_setup () {
-  local fire1='black'    # First color
-  local fire2='cyan'    # Second color
-  local fire3='black'    # Third color
-  local userhost='white'  # User@host color
-  local date='green'      # Date color
-  local cwd='yellow'       # Current directory color
+autoload -Uz vcs_info
+precmd() { vcs_info }
 
-  local -a schars
-  autoload -Uz prompt_special_chars
-  prompt_special_chars
+# Enable git info
+zstyle ':vcs_info:*' enable git
+zstyle ':vcs_info:*' formats '(branch: %b)'
 
-  local GRAD1="%{$schars[333]$schars[262]$schars[261]$schars[260]%}"
-  local GRAD2="%{$schars[260]$schars[261]$schars[262]$schars[333]%}"
-  local COLOR1="%B%F{$fire1}%K{$fire2}"
-  local COLOR2="%B%F{$userhost}%K{$fire2}"
-  local COLOR3="%b%F{$fire3}%K{$fire2}"
-  local COLOR4="%b%F{$fire3}%K{black}"
-  local COLOR5="%B%F{$cwd}%K{black}"
-  local COLOR6="%B%F{$date}%K{black}"
-  local GRAD0="%b%f%k"
-
+# Gradient behind username
+generate_username_with_gradient() {
+  local username="${USER}"
   local emoji=$'\U1F4BB'
- 
+  local -a chars
+  IFS='' chars=(${(s::)username})
 
-  # Set the PS1 prompt
-  PS1="$COLOR1$GRAD1$COLOR2%n@$(printf $emoji)$COLOR3$GRAD2$COLOR4$GRAD1$COLOR6$(date +'%Y-%m-%d %H:%M:%S') $GRAD0$COLOR5$(pwd | sed "s|$HOME|~|")$GRAD0 > "
+  local userlen=${#chars[@]}
 
-  prompt_opts=(cr subst percent)
+  # Define a half gradient (will be mirrored)
+  local -a gradient_half=(16 17 18 23 30 37 44)  # You can trim or expand this
+
+  # Ensure we only use as many gradient steps as needed
+  local half_len=$((userlen / 2))
+  local -a gradient=(${gradient_half[1,half_len]})
+
+  # Mirror the gradient around the center
+  local -a full_gradient
+  full_gradient=(${gradient} ${gradient[-1]} ${(O)gradient})  # Symmetric
+
+  # Adjust in case of even-length usernames (remove double central color)
+  if (( userlen % 2 == 0 )); then
+    full_gradient=(${gradient} ${(O)gradient})  # no duplicate center
+  fi
+
+  local output=""
+  for i in {1..$userlen}; do
+    local color=${full_gradient[i-1]}
+    output+="%{\e[48;5;${color}m\e[38;5;15m%}${chars[i]}"
+  done
+
+  # Append @💻 without affecting symmetry
+  for c in "@" "$emoji"; do
+    output+="%{\e[48;5;${full_gradient[-1]}m\e[38;5;15m%}${c}"
+  done
+
+  output+="%{\e[0m%}"  # Reset
+  echo "$output"
 }
 
-# Call the setup function
-prompt_fire_setup
+setopt prompt_subst
 
+PROMPT='$(generate_username_with_gradient) %F{yellow}%~ %F{green}${vcs_info_msg_0_}%f%k %# '
 
-export PATH='/Users/douglasaraujo/.duckdb/cli/latest':$PATH
